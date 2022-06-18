@@ -2,6 +2,7 @@ using Gee.External.Capstone;
 using Gee.External.Capstone.Arm;
 using SunAnalyzer.Version;
 using SunAnalyzer.Extension;
+using SunAnalyzer.Analyze.Labels;
 
 namespace SunAnalyzer.Analyze {
     public class Analyzer {
@@ -23,12 +24,19 @@ namespace SunAnalyzer.Analyze {
                 veneerDestination = BitConverter.ToInt32(byteCode, dataAddress);
                 assembly.InitFunctionAddresses[i] = veneerDestination - 1; // thumb
                 assembly.Labels.Add(new FunctionLabel(functionAddress + VersionConstants.MAP_CODE_BASE_ADDRESS, $"Thunk_{VersionConstants.INIT_FUNCTION_NAMES[i]}", initVeneer, assembly));
-                assembly.Labels.Add(new DataLabel(dataAddress + VersionConstants.MAP_CODE_BASE_ADDRESS, "", assembly));
+                assembly.Labels.Add(new PoolLabel(dataAddress + VersionConstants.MAP_CODE_BASE_ADDRESS, "", assembly));
             }
             for (int i = 0; i < assembly.InitFunctionAddresses.Length; ++i) {
                 HashSet<int> ignored = new HashSet<int>();
                 assembly.Labels.ForEach(l => ignored.Add(l.Address));
                 assembly.Labels.AddRange(AnalyzeFunction(assembly.InitFunctionAddresses[i], byteCode, assembly, ignored, VersionConstants.INIT_FUNCTION_NAMES[i]));
+            }
+
+            FunctionLabel? npcInitLabel = assembly.Labels.FirstOrDefault(l => l.Address == assembly.InitFunctionAddresses[3]) as FunctionLabel;
+            if (npcInitLabel != null) {
+                assembly.Labels.AddRange(AnalyzeNpcs(npcInitLabel, byteCode, assembly));
+            } else {
+                throw new Exception("npcInitLabel is NULL");
             }
 
             return assembly;
@@ -56,7 +64,7 @@ namespace SunAnalyzer.Analyze {
                 functionInstructions.Add(instruction);
                 if (instruction.IsPoolLoad()) {
                     int poolAddress = instruction.GetPoolLoadAddress(currentAddress + VersionConstants.MAP_CODE_BASE_ADDRESS);
-                    TryAddLabel(labels, ignoredAddresses, new DataLabel(poolAddress, "", assembly));
+                    TryAddLabel(labels, ignoredAddresses, new PoolLabel(poolAddress, "", assembly));
                 }
                 if (instruction.Id == ArmInstructionId.ARM_INS_B) {
                     int targetAddress = VersionConstants.MAP_CODE_BASE_ADDRESS + instruction.GetBranchTarget();
@@ -69,6 +77,22 @@ namespace SunAnalyzer.Analyze {
                 currentAddress += instruction.Bytes.Length;
             } while (!instruction.IsFunctionReturn());
             labels.Add(new FunctionLabel(startAddress, name, functionInstructions.ToArray(), assembly));
+            return labels.ToArray();
+        }
+
+        private Label[] AnalyzeNpcs(FunctionLabel npcInitFunction, byte[] byteCode, MapCodeAssembly assembly) {
+            List<Label> labels = new List<Label>();
+            // TODO: Sophisticated approach: Exhaustively scan each code branch of the function and check the resulting return value.
+            // Simplified approach: Scan every pool load and assume we found an NPC Array if the pool constant is inside the code file.
+            int currentAddress = npcInitFunction.Address;
+            for (int i = 0; i < npcInitFunction.Instructions.Length; ++i) {
+                ArmInstruction currentInstruction = npcInitFunction.Instructions[i];
+                if (currentInstruction.IsPoolLoad() && currentInstruction.Details.Operands[0].Register.Id == ArmRegisterId.ARM_REG_R0) {
+
+                    labels.Add(new NpcListLabel(assembly.GetPoolValue(currentInstruction, currentAddress), $"NpcData_{labels.Count}", assembly));
+                }
+                currentAddress += currentInstruction.Bytes.Length;
+            }
             return labels.ToArray();
         }
     }

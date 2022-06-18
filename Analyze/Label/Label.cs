@@ -1,10 +1,11 @@
-namespace SunAnalyzer.Analyze {
+namespace SunAnalyzer.Analyze.Labels {
     public abstract class Label : IComparable<Label> {
         private string _name;
         public enum LabelType {
             FUNCTION,
-            DATA,
-            BRANCH
+            POOL,
+            BRANCH,
+            DATA
         }
         public int Address { get; set; }
         public string Name { 
@@ -18,14 +19,13 @@ namespace SunAnalyzer.Analyze {
                 _name = value;
             } 
         }
-        public int Size { get; set; }
+        public abstract int Size { get; }
         public abstract LabelType Type { get; }
         public MapCodeAssembly BaseAssembly {get; }
 
         public Label(int address, string name, MapCodeAssembly baseAssembly) {
             Address = address;
             _name = name;
-            Size = -1;
             BaseAssembly = baseAssembly;
         }
 

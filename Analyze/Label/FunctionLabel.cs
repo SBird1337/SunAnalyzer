@@ -3,18 +3,19 @@ using Gee.External.Capstone.Arm;
 using SunAnalyzer.Extension;
 using SunAnalyzer.Version;
 
-namespace SunAnalyzer.Analyze {
+namespace SunAnalyzer.Analyze.Labels {
     public class FunctionLabel : Label
     {
         public override LabelType Type => LabelType.FUNCTION;
         public ArmInstruction[] Instructions { get; set; }
+        public override int Size => Instructions.Sum(i => i.Bytes.Length);
         public FunctionLabel(int address, string name, ArmInstruction[] instructions, MapCodeAssembly baseAssembly) : base(address, name, baseAssembly) {
             Instructions = instructions;
-            Size = instructions.Length * 2;
         }
 
         public override string ToString() {
             StringBuilder builder = new StringBuilder();
+            builder.AppendLine(".align 2, 0");
             builder.AppendLine($"{Name}:");
             IEnumerable<Label> branches = BaseAssembly.Labels.Where(l => l.Type == LabelType.BRANCH).ToArray();
             int currentAddressOffset = 0;

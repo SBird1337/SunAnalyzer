@@ -1,12 +1,14 @@
 using System.Text;
 using SunAnalyzer.Version;
 
-namespace SunAnalyzer.Analyze {
-    public class DataLabel : Label
+namespace SunAnalyzer.Analyze.Labels {
+    public class PoolLabel : Label
     {
-        public override LabelType Type => LabelType.DATA;
+        public override LabelType Type => LabelType.POOL;
 
-        public DataLabel(int address, string name, MapCodeAssembly baseAssembly) : base(address, name, baseAssembly) {
+        public override int Size => 4;
+
+        public PoolLabel(int address, string name, MapCodeAssembly baseAssembly) : base(address, name, baseAssembly) {
             
         }
 
