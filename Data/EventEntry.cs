@@ -8,7 +8,7 @@ namespace SunAnalyzer.Data {
         public ushort EventFlag { get; set; }
         public ushort ObjectId { get; set; }
         public int ScriptAddress { get; set; }
-        public override int Size => 8;
+        public override int Size => 12;
         public override bool IsEndElement => (BitFlags == 0xFFFFFFFF);
         public EventEntry() : base () {}
 
@@ -27,7 +27,7 @@ namespace SunAnalyzer.Data {
                 int thumbCodeAddress = ScriptAddress - 1;
                 Label? l = Assembly!.Labels.FirstOrDefault(l => l.Address == thumbCodeAddress);
                 if (l != null)
-                    scriptIdentifier = l.Name;
+                    scriptIdentifier = $"{l.Name}+1";
             }
             return $"\tevent_entry 0x{BitFlags.ToString("X8")}, 0x{EventFlag.ToString("X4")}, 0x{ObjectId.ToString("X4")}, {scriptIdentifier}";
         }

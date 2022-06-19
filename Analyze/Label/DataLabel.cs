@@ -14,7 +14,7 @@ namespace SunAnalyzer.Analyze.Labels {
         public override string ToString()
         {
             StringBuilder builder = new StringBuilder();
-            builder.AppendLine($"{Name}:");
+            builder.AppendLine($"{Name}: @0x{Address.ToString("X8")}");
             for (int i = 0; i < DataEntries.Count; ++i) {
                 builder.AppendLine(DataEntries[i].ToString());
             }

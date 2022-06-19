@@ -52,7 +52,10 @@ namespace SunAnalyzer.Analyze {
         public override string ToString()
         {
             StringBuilder builder = new StringBuilder();
-            builder.AppendLine(".syntax unified\n");
+            builder.AppendLine(".thumb");
+            builder.AppendLine(".syntax unified");
+            builder.AppendLine(".include \"macros/event.inc\"");
+            builder.AppendLine();
             Labels.Sort();
             for (int i = 0; i < Labels.Count; ++i) {
                 Label current = Labels[i];

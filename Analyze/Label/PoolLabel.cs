@@ -14,6 +14,7 @@ namespace SunAnalyzer.Analyze.Labels {
 
         public override string ToString() {
             StringBuilder builder = new StringBuilder();
+            builder.AppendLine(".align 2, 0");
             builder.AppendLine($"{Name}:");
             int offset = Address - VersionConstants.MAP_CODE_BASE_ADDRESS;
             int dataValue = BitConverter.ToInt32(BaseAssembly.ByteCode, offset);
