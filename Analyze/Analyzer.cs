@@ -34,7 +34,10 @@ namespace SunAnalyzer.Analyze {
 
             FunctionLabel? npcInitLabel = assembly.Labels.FirstOrDefault(l => l.Address == assembly.InitFunctionAddresses[3]) as FunctionLabel;
             if (npcInitLabel != null) {
-                assembly.Labels.AddRange(AnalyzeNpcs(npcInitLabel, byteCode, assembly));
+                int[] npcAddresses = AnalyzePoolReturnsInFile(npcInitLabel, assembly);
+                for (int i = 0; i < npcAddresses.Length; ++i) {
+                    assembly.Labels.Add(new NpcListLabel(npcAddresses[i], $"NpcData_{i}", assembly));
+                }
             } else {
                 throw new Exception("npcInitLabel is NULL");
             }
@@ -80,20 +83,23 @@ namespace SunAnalyzer.Analyze {
             return labels.ToArray();
         }
 
-        private Label[] AnalyzeNpcs(FunctionLabel npcInitFunction, byte[] byteCode, MapCodeAssembly assembly) {
-            List<Label> labels = new List<Label>();
+        private int[] AnalyzePoolReturnsInFile(FunctionLabel scannedFunction, MapCodeAssembly assembly) {
+            List<int> targets = new List<int>();
             // TODO: Sophisticated approach: Exhaustively scan each code branch of the function and check the resulting return value.
-            // Simplified approach: Scan every pool load and assume we found an NPC Array if the pool constant is inside the code file.
-            int currentAddress = npcInitFunction.Address;
-            for (int i = 0; i < npcInitFunction.Instructions.Length; ++i) {
-                ArmInstruction currentInstruction = npcInitFunction.Instructions[i];
-                if (currentInstruction.IsPoolLoad() && currentInstruction.Details.Operands[0].Register.Id == ArmRegisterId.ARM_REG_R0) {
 
-                    labels.Add(new NpcListLabel(assembly.GetPoolValue(currentInstruction, currentAddress), $"NpcData_{labels.Count}", assembly));
+            // Simplified approach: Scan every pool load and assume we found an NPC Array if the pool constant is inside the code file.
+            //                      And the pool load targets r0
+            int currentAddress = scannedFunction.Address;
+            for (int i = 0; i < scannedFunction.Instructions.Length; ++i) {
+                ArmInstruction currentInstruction = scannedFunction.Instructions[i];
+                if (currentInstruction.IsPoolLoad() && currentInstruction.Details.Operands[0].Register.Id == ArmRegisterId.ARM_REG_R0) {
+                    int poolAddress = assembly.GetPoolValue(currentInstruction, currentAddress);
+                    if (poolAddress > VersionConstants.MAP_CODE_BASE_ADDRESS && poolAddress < (VersionConstants.MAP_CODE_BASE_ADDRESS + assembly.ByteCode.Length))
+                        targets.Add(poolAddress);
                 }
                 currentAddress += currentInstruction.Bytes.Length;
             }
-            return labels.ToArray();
+            return targets.ToArray();
         }
     }
 }
