@@ -26,11 +26,12 @@ namespace SunAnalyzer.Analyze.Labels {
             int offset = address - VersionConstants.MAP_CODE_BASE_ADDRESS;
             MemoryStream dataStream = new MemoryStream(baseAssembly.ByteCode);
             dataStream.Position = offset;
+            T entry;
             do {
-                T entry = new T();
+                entry = new T();
                 entry.Initialize(dataStream, baseAssembly);
                 DataEntries.Add(entry);
-            } while (!DataEntries.Last().IsEndElement);
+            } while (!entry.IsEndElement);
         }
     }
 }
