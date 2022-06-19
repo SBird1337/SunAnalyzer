@@ -1,5 +1,7 @@
+using SunAnalyzer.Analyze;
+
 namespace SunAnalyzer.Data {
-    public class NpcEntry {
+    public class NpcEntry : DataEntry {
         public ushort SpriteId { get; set; }
         public ushort Flag {get; set; }
         public int ScriptAddress { get; set; }
@@ -8,25 +10,26 @@ namespace SunAnalyzer.Data {
         public short Y { get; set; }
         public ushort Unknown { get; set; }
         public ushort Direction { get; set; }
+        public override int Size => 24;
 
-        private NpcEntry() {}
+        public override bool IsEndElement => (SpriteId == 0xFFFF);
 
-        public static NpcEntry FromStream(Stream stream) {
+        public NpcEntry() : base () {}
+        public override void Initialize(Stream stream, MapCodeAssembly assembly)
+        {
+            base.Initialize(stream, assembly);
             BinaryReader reader = new BinaryReader(stream);
-            NpcEntry newEntry = new NpcEntry();
-            newEntry.SpriteId = reader.ReadUInt16();
-            newEntry.Flag = reader.ReadUInt16();
-            newEntry.ScriptAddress = reader.ReadInt32();
+            SpriteId = reader.ReadUInt16();
+            Flag = reader.ReadUInt16();
+            ScriptAddress = reader.ReadInt32();
             reader.ReadUInt16(); // Padding X
-            newEntry.X = reader.ReadInt16();
+            X = reader.ReadInt16();
             reader.ReadUInt16(); // Padding Z
-            newEntry.Z = reader.ReadInt16();
+            Z = reader.ReadInt16();
             reader.ReadUInt16(); // Padding Y
-            newEntry.Y = reader.ReadInt16();
-            newEntry.Direction = reader.ReadUInt16();
-            newEntry.Unknown = reader.ReadUInt16();
-
-            return newEntry;
+            Y = reader.ReadInt16();
+            Direction = reader.ReadUInt16();
+            Unknown = reader.ReadUInt16();
         }
 
         public override string ToString() {

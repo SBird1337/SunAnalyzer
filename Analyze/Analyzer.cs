@@ -3,6 +3,7 @@ using Gee.External.Capstone.Arm;
 using SunAnalyzer.Version;
 using SunAnalyzer.Extension;
 using SunAnalyzer.Analyze.Labels;
+using SunAnalyzer.Data;
 
 namespace SunAnalyzer.Analyze {
     public class Analyzer {
@@ -33,13 +34,32 @@ namespace SunAnalyzer.Analyze {
             }
 
             FunctionLabel? npcInitLabel = assembly.Labels.FirstOrDefault(l => l.Address == assembly.InitFunctionAddresses[3]) as FunctionLabel;
+            FunctionLabel? eventInitLabel = assembly.Labels.FirstOrDefault(l => l.Address == assembly.InitFunctionAddresses[4]) as FunctionLabel;
+
             if (npcInitLabel != null) {
                 int[] npcAddresses = AnalyzePoolReturnsInFile(npcInitLabel, assembly);
                 for (int i = 0; i < npcAddresses.Length; ++i) {
-                    assembly.Labels.Add(new NpcListLabel(npcAddresses[i], $"NpcData_{i}", assembly));
+                    assembly.Labels.Add(new DataLabel<NpcEntry>(npcAddresses[i], $"NpcData_{i}", assembly));
                 }
             } else {
                 throw new Exception("npcInitLabel is NULL");
+            }
+            if (eventInitLabel != null) {
+                int[] eventAddresses = AnalyzePoolReturnsInFile(eventInitLabel, assembly);
+                for (int i = 0; i < eventAddresses.Length; ++i) {
+                    DataLabel<EventEntry> label = new DataLabel<EventEntry>(eventAddresses[i], $"EventData_{i}", assembly);
+                    assembly.Labels.Add(label);
+                    for (int j = 0; j < label.DataEntries.Count; ++j) {
+                        EventEntry entry = label.DataEntries[j];
+                        if (entry.ScriptAddress > VersionConstants.MAP_CODE_BASE_ADDRESS && entry.ScriptAddress < (VersionConstants.MAP_CODE_BASE_ADDRESS + assembly.ByteCode.Length)) {
+                            HashSet<int> ignored = new HashSet<int>();
+                            assembly.Labels.ForEach(l => ignored.Add(l.Address));
+                            assembly.Labels.AddRange(AnalyzeFunction(entry.ScriptAddress - 1, byteCode, assembly, ignored, $"EventData_{i}_Action_{j}"));
+                        }
+                    }
+                }
+            } else {
+                throw new Exception("eventInitLabel is NULL");
             }
 
             return assembly;
